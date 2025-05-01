@@ -13,8 +13,9 @@ def initialize_persona_state():
     if 'current_persona' not in st.session_state:
         st.session_state.current_persona = "default"
     
-    if 'mood_override' not in st.session_state:
-        st.session_state.mood_override = None
+    # Use a different variable name to avoid conflict with the widget key
+    if 'current_mood_override' not in st.session_state:
+        st.session_state.current_mood_override = None
 
 def save_current_persona(name, personalization):
     """
@@ -58,7 +59,8 @@ def set_mood_override(mood):
         None: None  # Reset to default persona tone
     }
     
-    st.session_state.mood_override = mood
+    # Use the different variable name to avoid conflict
+    st.session_state.current_mood_override = mood
     
     # Return the mapped tone for immediate use
     return mood_mapping.get(mood)
@@ -77,8 +79,8 @@ def get_current_persona_with_mood():
         current_settings = st.session_state.saved_personas[st.session_state.current_persona].copy()
     
     # Apply mood override if set
-    if st.session_state.mood_override:
-        mood_tone = set_mood_override(st.session_state.mood_override)
+    if st.session_state.current_mood_override:
+        mood_tone = set_mood_override(st.session_state.current_mood_override)
         if mood_tone:
             current_settings["tone"] = mood_tone
     
@@ -136,15 +138,17 @@ def render_persona_management():
         
         # Mood override section
         st.subheader("Mood Override")
+        # Use a different key for the mood selectbox
         mood_options = [None, "serious", "motivational", "sarcastic", "excited", "analytical"]
         selected_mood = st.selectbox(
             "Temporarily change tone based on mood:",
             options=mood_options,
             index=0,
-            key="mood_override"
+            key="mood_override_selectbox"  # Changed key name here
         )
         
         if st.button("Apply Mood"):
+            # When the button is clicked, set the mood override
             tone_override = set_mood_override(selected_mood)
             if selected_mood:
                 st.success(f"Applied {selected_mood} mood (tone: {tone_override})")
@@ -172,8 +176,8 @@ def inject_dynamic_persona_instructions(original_prompt, personalization):
         persona_context += f"\nYou are currently using the '{st.session_state.current_persona}' persona. "
     
     # Add info about mood override
-    if st.session_state.mood_override:
-        persona_context += f"\nThe user has requested you adopt a {st.session_state.mood_override} mood for this response. "
+    if st.session_state.current_mood_override:
+        persona_context += f"\nThe user has requested you adopt a {st.session_state.current_mood_override} mood for this response. "
     
     # Insert the context after the first sentence
     if persona_context:
