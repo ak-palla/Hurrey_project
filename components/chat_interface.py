@@ -6,15 +6,32 @@ from langchain_core.chat_history import BaseChatMessageHistory
 
 def display_chat_history(chat_history: BaseChatMessageHistory):
     """
-    Display the chat history in an expander.
+    Display the chat history directly in a container.
     
     Args:
         chat_history: ChatMessageHistory object containing messages
     """
-    with st.expander("Chat History", expanded=False):
+    # Display messages directly without an expander
+    for msg in chat_history.messages:
+        role = "User" if msg.type == "human" else "Assistant"
+        st.markdown(f"**{role}:** {msg.content}")
+        st.divider()
+
+def display_chat_history_in_tab(chat_history: BaseChatMessageHistory, tab):
+    """
+    Display the chat history within a specified tab.
+    
+    Args:
+        chat_history: ChatMessageHistory object containing messages
+        tab: Streamlit tab to render within
+    """
+    if not chat_history.messages:
+        tab.info("No conversation history yet.")
+    else:
         for msg in chat_history.messages:
             role = "User" if msg.type == "human" else "Assistant"
-            st.markdown(f"**{role}:** {msg.content}")
+            tab.markdown(f"**{role}:** {msg.content}")
+            tab.divider()
 
 def display_chat_input():
     """
