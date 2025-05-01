@@ -48,10 +48,14 @@ def main():
         # Render persona management UI and get any overrides
         persona_overrides = render_persona_management()
         
-        # Merge base settings with any persona/mood overrides
-        personalization = {**base_personalization, **persona_overrides}
+        # Use the active_persona_settings directly for personalization
+        # This ensures the loaded persona settings are used for chat responses
+        personalization = st.session_state.active_persona_settings.copy()
     else:
         personalization = base_personalization
+    
+    # Debug print of personalization settings
+    print(f"MAIN: Current personalization settings being used: {personalization}")
     
     # Session ID management
     session_col1, session_col2 = st.columns([3, 1])
@@ -135,7 +139,6 @@ def main():
     
     # Display current personalization settings
     display_settings(personalization)
-    
     # Create tabs for interaction and history
     interaction_tab, history_tab = st.tabs(["Chat", "History"])
     
@@ -155,15 +158,21 @@ def main():
                     # This ensures the message is added even if processing fails
                     chat_history.add_user_message(user_input)
                     
+                    # IMPORTANT: Always get the latest active_persona_settings right before making the request
+                    # This ensures any persona changes are immediately reflected in responses
+                    current_personalization = st.session_state.active_persona_settings.copy()
+                    
                     # Add personalization parameters to the input
+                    # CRITICAL: Use lowercase values for the API request
                     personalized_input = {
                         "input": user_input,
-                        **{k: v.lower() for k, v in personalization.items()}
+                        **{k: v.lower() for k, v in current_personalization.items()}
                     }
                     
                     # Debug print - shows the session ID and current message count
                     print(f"Session ID: {session_id}")
                     print(f"Message count before response: {len(chat_history.messages)}")
+                    print(f"Sending personalization to LLM: {personalized_input}")
                     
                     # Invoke chain with error handling
                     response = conversational_rag_chain.invoke(
@@ -231,7 +240,7 @@ def main():
                             else:
                                 st.info("No context was retrieved for this question.")
                     
-                    # Save settings for logged-in users
+                    # Save settings for logged-in users, including any persona changes
                     if is_logged_in:
                         save_user_settings()
                     
