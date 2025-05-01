@@ -80,13 +80,23 @@ def create_conversational_rag_chain(llm, vectorstore, get_session_history_fn):
         # Create a modern chain that uses the retriever and question-answer components
         rag_chain = preprocessing | retriever_chain | question_answer_chain
         
+        # Add a debug step to print what RunnableWithMessageHistory is doing
+        def debug_print_inputs_outputs(inputs, outputs, session_id, **kwargs):
+            print(f"DEBUG: Message history for session {session_id}")
+            print(f"DEBUG: Input type: {type(inputs)}")
+            print(f"DEBUG: Output type: {type(outputs)}")
+            return outputs
+        
         # Create conversational chain with message history
+        # Note: We're not relying solely on RunnableWithMessageHistory to update the chat history
+        # since we're manually adding messages in app.py
         conversational_rag_chain = RunnableWithMessageHistory(
             rag_chain,
             get_session_history_fn,
             input_messages_key="input",
             history_messages_key="chat_history",
-            output_messages_key="answer"
+            output_messages_key="answer",
+            post_process_messages=debug_print_inputs_outputs
         )
         
         st.success("Successfully created RAG chain with history-aware retrieval")
@@ -143,12 +153,13 @@ def create_conversational_rag_chain(llm, vectorstore, get_session_history_fn):
             rag_chain = input_mapper | retrieval_chain
             
             # Create conversational chain with message history
+            # Note: We will still manually add messages in app.py
             conversational_rag_chain = RunnableWithMessageHistory(
                 rag_chain,
                 get_session_history_fn,
                 input_messages_key="input",
                 history_messages_key="chat_history",
-                output_messages_key="answer"
+                output_messages_key="answer" 
             )
             
             st.success("Created simplified RAG chain (without advanced retrieval)")
@@ -176,7 +187,7 @@ def create_conversational_rag_chain(llm, vectorstore, get_session_history_fn):
                     get_session_history_fn,
                     input_messages_key="input",
                     history_messages_key="chat_history",
-                    output_messages_key="answer"
+                    output_messages_key="output"  # Changed this to "output" for the simplest chain
                 )
                 
                 st.warning("Using LLM without document retrieval as fallback")
