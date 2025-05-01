@@ -16,6 +16,18 @@ def initialize_persona_state():
     # Use a different variable name to avoid conflict with the widget key
     if 'current_mood_override' not in st.session_state:
         st.session_state.current_mood_override = None
+        
+    # Initialize a separate session state variable to store the active persona settings
+    # This avoids conflicts with widget keys
+    if 'active_persona_settings' not in st.session_state:
+        st.session_state.active_persona_settings = {
+            "tone": "Friendly",
+            "goal": "Educate",
+            "length": "Medium",
+            "style": "Straightforward",
+            "language": "English",
+            "persona": "Intermediate"
+        }
 
 def save_current_persona(name, personalization):
     """
@@ -27,6 +39,14 @@ def save_current_persona(name, personalization):
     """
     st.session_state.saved_personas[name] = personalization.copy()
     st.session_state.current_persona = name
+    
+    # Store the settings in the active_persona_settings
+    # This avoids conflicts with widget keys
+    st.session_state.active_persona_settings = personalization.copy()
+    
+    # Debug print to verify what's being saved
+    print(f"Saved persona '{name}' with settings: {personalization}")
+    print(f"Active settings after save: {st.session_state.active_persona_settings}")
 
 def load_persona(name):
     """
@@ -40,7 +60,17 @@ def load_persona(name):
     """
     if name in st.session_state.saved_personas:
         st.session_state.current_persona = name
-        return st.session_state.saved_personas[name]
+        persona_settings = st.session_state.saved_personas[name].copy()
+        
+        # Store the settings in the active_persona_settings
+        # This avoids conflicts with widget keys
+        st.session_state.active_persona_settings = persona_settings.copy()
+        
+        # Debug print to verify what's being loaded
+        print(f"Loaded persona '{name}' with settings: {persona_settings}")
+        print(f"Active settings after load: {st.session_state.active_persona_settings}")
+            
+        return persona_settings
     return None
 
 def set_mood_override(mood):
@@ -62,6 +92,15 @@ def set_mood_override(mood):
     # Use the different variable name to avoid conflict
     st.session_state.current_mood_override = mood
     
+    # If we have a mood, update the active_persona_settings
+    if mood and mood in mood_mapping:
+        st.session_state.active_persona_settings["tone"] = mood_mapping[mood]
+    elif mood is None and st.session_state.current_persona in st.session_state.saved_personas:
+        # Reset to saved persona's tone if mood is cleared
+        persona_settings = st.session_state.saved_personas[st.session_state.current_persona]
+        if "tone" in persona_settings:
+            st.session_state.active_persona_settings["tone"] = persona_settings["tone"]
+    
     # Return the mapped tone for immediate use
     return mood_mapping.get(mood)
 
@@ -72,19 +111,9 @@ def get_current_persona_with_mood():
     Returns:
         Dictionary of personalization settings with mood override applied
     """
-    current_settings = {}
-    
-    # Get base settings from current persona
-    if st.session_state.current_persona in st.session_state.saved_personas:
-        current_settings = st.session_state.saved_personas[st.session_state.current_persona].copy()
-    
-    # Apply mood override if set
-    if st.session_state.current_mood_override:
-        mood_tone = set_mood_override(st.session_state.current_mood_override)
-        if mood_tone:
-            current_settings["tone"] = mood_tone
-    
-    return current_settings
+    # Debug print to verify what's being returned at request time
+    print(f"Returning active persona settings: {st.session_state.active_persona_settings}")
+    return st.session_state.active_persona_settings.copy()
 
 def render_persona_management():
     """
@@ -98,19 +127,20 @@ def render_persona_management():
     with st.sidebar.expander("Persona Management", expanded=False):
         # Save current settings as persona
         persona_name = st.text_input("Save current settings as persona:", key="save_persona_name")
-        if st.button("Save Persona"):
+        save_button = st.button("Save Persona")
+        if save_button:
             if persona_name:
-                # Get the current personalization settings from sidebar
-                current_settings = {
-                    "tone": st.session_state.get("tone", "Formal"),
-                    "goal": st.session_state.get("goal", "Educate"),
-                    "length": st.session_state.get("length", "Medium"),
-                    "style": st.session_state.get("style", "Straightforward"),
-                    "language": st.session_state.get("language", "English"),
-                    "persona": st.session_state.get("persona", "Intermediate")
-                }
+                # Get the current personalization settings from session state
+                # This matches the widget keys from sidebar.py
+                current_settings = {}
+                for key in ["tone", "goal", "length", "style", "language", "persona"]:
+                    if key in st.session_state:
+                        current_settings[key] = st.session_state[key]
+                
                 save_current_persona(persona_name, current_settings)
                 st.success(f"Saved persona: {persona_name}")
+                # Force a rerun to update the UI with new persona
+                st.rerun()
             else:
                 st.error("Please enter a name for the persona")
         
@@ -124,14 +154,12 @@ def render_persona_management():
                 key="load_persona_select"
             )
             
-            if selected_persona and st.button("Load Persona"):
+            load_button = st.button("Load Persona")
+            if selected_persona and load_button:
                 persona_settings = load_persona(selected_persona)
                 if persona_settings:
-                    # Update session state to reflect loaded persona
-                    for key, value in persona_settings.items():
-                        st.session_state[key] = value
                     st.success(f"Loaded persona: {selected_persona}")
-                    # Force a rerun to update the UI
+                    # Force a rerun to update the UI and apply persona settings to the chat
                     st.rerun()
         else:
             st.info("No saved personas yet. Save your current settings first.")
@@ -147,13 +175,16 @@ def render_persona_management():
             key="mood_override_selectbox"  # Changed key name here
         )
         
-        if st.button("Apply Mood"):
+        mood_button = st.button("Apply Mood")
+        if mood_button:
             # When the button is clicked, set the mood override
             tone_override = set_mood_override(selected_mood)
             if selected_mood:
                 st.success(f"Applied {selected_mood} mood (tone: {tone_override})")
             else:
                 st.success("Reset to default persona tone")
+            # Force a rerun to apply mood to the current chat
+            st.rerun()
     
     # Get final personalization with any overrides applied
     return get_current_persona_with_mood()
