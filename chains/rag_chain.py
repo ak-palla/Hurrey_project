@@ -60,7 +60,7 @@ def create_conversational_rag_chain(llm, vectorstore, get_session_history_fn):
             persona = input_dict.get("persona", "intermediate").lower()
             
             # Log the variables for debugging
-            print(f"Personalization parameters: tone={tone}, goal={goal}, length={length}, style={style}, language={language}, persona={persona}")
+            print(f"RAG CHAIN: Personalization parameters: tone={tone}, goal={goal}, length={length}, style={style}, language={language}, persona={persona}")
             
             # Return the input dict with all parameters properly set
             return {
