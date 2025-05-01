@@ -148,11 +148,22 @@ def main():
             # Show thinking spinner
             with st.spinner("Thinking..."):
                 try:
+                    # Get the chat history for this session
+                    chat_history = get_session_history(session_id)
+                    
+                    # Manually add the user message to history BEFORE processing
+                    # This ensures the message is added even if processing fails
+                    chat_history.add_user_message(user_input)
+                    
                     # Add personalization parameters to the input
                     personalized_input = {
                         "input": user_input,
                         **{k: v.lower() for k, v in personalization.items()}
                     }
+                    
+                    # Debug print - shows the session ID and current message count
+                    print(f"Session ID: {session_id}")
+                    print(f"Message count before response: {len(chat_history.messages)}")
                     
                     # Invoke chain with error handling
                     response = conversational_rag_chain.invoke(
@@ -178,6 +189,13 @@ def main():
                         
                         # Display response
                         st.markdown(f"**Assistant:** {answer_text}")
+                        
+                        # Manually add the assistant's response to the chat history
+                        # This is critical to fix the history issue
+                        chat_history.add_ai_message(answer_text)
+                        
+                        # Debug print - shows updated message count
+                        print(f"Message count after response: {len(chat_history.messages)}")
                         
                         # Display retrieved context (new feature) in a separate tab
                         context_tab = st.expander("View Retrieved Context", expanded=False)
@@ -226,14 +244,19 @@ def main():
     
     # Display chat history in the history tab to avoid nesting expanders
     with history_tab:
+        # Add a refresh button to force-update the history display
+        if st.button("Refresh History"):
+            st.rerun()
+            
         if session_id in st.session_state.store:
             messages = get_session_history(session_id).messages
             if not messages:
                 st.info("No conversation history yet.")
             else:
-                for msg in messages:
+                st.success(f"Found {len(messages)} messages in history")
+                for i, msg in enumerate(messages):
                     role = "User" if msg.type == "human" else "Assistant"
-                    st.markdown(f"**{role}:** {msg.content}")
+                    st.markdown(f"**Message {i+1} - {role}:** {msg.content}")
                     st.divider()
         else:
             st.info("No conversation history for this session.")
