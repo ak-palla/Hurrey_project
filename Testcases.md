@@ -347,14 +347,4 @@ The most successful countries have created a mix of these policies, helping both
 Would you like to hear more about how these renewable friends might power your own home, or about other renewable energy sources like their cousins Hydro and Geothermal?
 ```
 
-### Retrieved Context Visualization
 
-![Multi-Document Context](images/multi_document_context.png)
-
-## Accessing the Interactive Demo
-
-A live demonstration of the Individualized Chatbot with RAG Personalization can be accessed at: [https://demo-personalized-rag-chatbot.streamlit.app](https://demo-personalized-rag-chatbot.streamlit.app)
-
-For a video walkthrough of the features, please visit: [https://youtu.be/personalized-chatbot-demo](https://youtu.be/personalized-chatbot-demo)
-
-**Note**: The screenshots provided above are from actual testing sessions with the application. The document content examples represent typical documents that would be processed by the system.
