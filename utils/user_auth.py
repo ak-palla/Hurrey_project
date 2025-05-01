@@ -21,6 +21,17 @@ def initialize_auth_state():
     
     if 'user_settings' not in st.session_state:
         st.session_state.user_settings = {}
+        
+    # Initialize active_persona_settings if not present
+    if 'active_persona_settings' not in st.session_state:
+        st.session_state.active_persona_settings = {
+            "tone": "Friendly",
+            "goal": "Educate",
+            "length": "Medium",
+            "style": "Straightforward",
+            "language": "English",
+            "persona": "Intermediate"
+        }
 
 def login_user(username, password):
     """
@@ -85,6 +96,15 @@ def register_user(username, password):
         return False
     
     try:
+        initial_persona_settings = {
+            "tone": "Friendly",
+            "goal": "Educate",
+            "length": "Medium",
+            "style": "Straightforward",
+            "language": "English",
+            "persona": "Intermediate"
+        }
+        
         user_data = {
             'username': username,
             'password': password,
@@ -92,14 +112,7 @@ def register_user(username, password):
             'last_login': datetime.datetime.now().isoformat(),
             'settings': {
                 'default_session': f"{username}_default",
-                'default_personalization': {
-                    'tone': 'Friendly',
-                    'goal': 'Educate',
-                    'length': 'Medium',
-                    'style': 'Straightforward',
-                    'language': 'English',
-                    'persona': 'Intermediate'
-                },
+                'default_personalization': initial_persona_settings,
                 'saved_personas': {},
                 'saved_sessions': []
             }
@@ -111,6 +124,9 @@ def register_user(username, password):
         st.session_state.logged_in = True
         st.session_state.current_user = username
         st.session_state.user_settings = user_data['settings']
+        
+        # Initialize active_persona_settings
+        st.session_state.active_persona_settings = initial_persona_settings
         
         return True
     except Exception as e:
@@ -161,15 +177,17 @@ def save_user_settings():
                     user_data['settings']['saved_sessions'] = []
                 user_data['settings']['saved_sessions'].append(st.session_state.session_id)
         
-        # Save personalization settings
-        personalization_keys = ['tone', 'goal', 'length', 'style', 'language', 'persona']
-        current_personalization = {}
-        for key in personalization_keys:
-            if key in st.session_state:
-                current_personalization[key] = st.session_state[key]
+        # Save current persona
+        if 'current_persona' in st.session_state:
+            user_data['settings']['current_persona'] = st.session_state.current_persona
+            
+        # Save current mood override
+        if 'current_mood_override' in st.session_state:
+            user_data['settings']['current_mood_override'] = st.session_state.current_mood_override
         
-        if current_personalization:
-            user_data['settings']['default_personalization'] = current_personalization
+        # Save active persona settings
+        if 'active_persona_settings' in st.session_state:
+            user_data['settings']['active_persona_settings'] = st.session_state.active_persona_settings
             
         # Write back to file
         with open(user_file, 'w') as f:
@@ -198,12 +216,27 @@ def load_user_settings():
         # Load default session
         if 'default_session' in st.session_state.user_settings:
             st.session_state.session_id = st.session_state.user_settings.get('default_session')
+        
+        # Load current persona
+        if 'current_persona' in st.session_state.user_settings:
+            st.session_state.current_persona = st.session_state.user_settings.get('current_persona')
             
-        # Load personalization settings
-        if 'default_personalization' in st.session_state.user_settings:
-            personalization = st.session_state.user_settings.get('default_personalization', {})
-            for key, value in personalization.items():
-                st.session_state[key] = value
+        # Load current mood override
+        if 'current_mood_override' in st.session_state.user_settings:
+            st.session_state.current_mood_override = st.session_state.user_settings.get('current_mood_override')
+            
+        # Load active persona settings
+        if 'active_persona_settings' in st.session_state.user_settings:
+            st.session_state.active_persona_settings = st.session_state.user_settings.get('active_persona_settings')
+        elif 'default_personalization' in st.session_state.user_settings:
+            # Fall back to default personalization if active_persona_settings not found
+            st.session_state.active_persona_settings = st.session_state.user_settings.get('default_personalization')
+        
+        # If we have a current persona loaded, apply its settings
+        if st.session_state.get('current_persona') and st.session_state.get('current_persona') != 'default':
+            if st.session_state.current_persona in st.session_state.saved_personas:
+                persona_settings = st.session_state.saved_personas[st.session_state.current_persona]
+                st.session_state.active_persona_settings = persona_settings.copy()
                 
         return True
     except Exception as e:
