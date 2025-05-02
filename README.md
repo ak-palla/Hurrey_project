@@ -129,14 +129,6 @@ The project follows a modular design with clear separation of concerns:
 - **Vector Store Not Found**: Upload documents before asking questions
 - **Session State Errors**: Ensure unique keys for widgets and session state variables
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-[Your License Choice]
-
 ## Acknowledgments
 
 - [LangChain](https://github.com/langchain-ai/langchain) for the RAG framework
