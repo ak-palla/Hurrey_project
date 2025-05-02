@@ -44,8 +44,8 @@ A sophisticated chatbot that dynamically adapts its responses based on user-defi
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/individualized-chatbot-rag.git
-   cd individualized-chatbot-rag
+   git clone https://github.com/ak-palla/Hurrey_project
+   cd Hurrey_project
    ```
 
 2. **Create and activate a virtual environment**:
